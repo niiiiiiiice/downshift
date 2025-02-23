@@ -55,14 +55,3 @@ const DarkStyledInput = styled(StyledInput)`
 export const DarkInput = forwardRef<HTMLInputElement>((props, ref) => (
   <DarkStyledInput ref={ref} {...props} />
 ));
-
-// Antd input wrapper
-export const AntdInput = forwardRef<HTMLInputElement>((props, ref) => {
-  // Создаем ref для Antd Input
-  const antInputRef = React.useRef<InputRef>(null);
-
-  // Прокидываем HTMLInputElement ref наружу
-  React.useImperativeHandle(ref, () => antInputRef.current?.input as HTMLInputElement);
-
-  return <Input ref={antInputRef} {...props} />;
-});

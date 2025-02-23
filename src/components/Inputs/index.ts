@@ -1,1 +1,1 @@
-export {CustomInput, MaterialInput, DarkInput, AntdInput} from './Inputs';
+export {CustomInput, MaterialInput, DarkInput} from './Inputs';

@@ -2,23 +2,16 @@ import React from "react";
 
 
 import { Folder, FolderOpen } from 'lucide-react';
-import { RenderItemProps } from '../TreeCombobox/types';
-import { Label, ExpandIconWrapper, ActionsContainer, ActionButton } from './Item.styled';
+import { RenderItemProps, TreeNode } from '../TreeCombobox/Model/types';
+import { Label, ExpandIconWrapper} from './Item.styled';
 
 
-type ItemPorps = RenderItemProps;
-
-export const Item: React.FC<ItemPorps> = (
+export const Item: React.FC<RenderItemProps<TreeNode>> = (
   {
     node,
-
-    onAdd,
-    onEdit,
-    onDelete,
-
-    onExpand,
     isExpanded,
-    hasChildren
+    hasChildren,
+    onExpand,
   }) => {
 
   return (
@@ -29,24 +22,11 @@ export const Item: React.FC<ItemPorps> = (
           {!isExpanded ? <Folder /> : <FolderOpen />}
         </ExpandIconWrapper>
       )}
-      <Label maxLines={2}>
+      <Label>
         {node.label}
       </Label>
       {node.isEditable && (
-        <ActionsContainer className="actions">
-          <ActionButton onClick={onAdd}>
-            <span>+</span>
-            Добавить
-          </ActionButton>
-          <ActionButton onClick={onEdit}>
-            <span>✎</span>
-            Изменить
-          </ActionButton>
-          <ActionButton onClick={onDelete}>
-            <span>×</span>
-            Удалить
-          </ActionButton>
-        </ActionsContainer>
+        <span>Editable</span>
       )}
     </>
   )

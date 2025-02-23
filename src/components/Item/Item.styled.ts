@@ -1,13 +1,8 @@
 import styled from "styled-components";
 
-export const Label = styled.div<{ maxLines?: number }>`
+export const Label = styled.div`
   flex: 1;
   overflow: hidden;
-  ${props => props.maxLines && `
-    display: -webkit-box;
-    -webkit-line-clamp: ${props.maxLines};
-    -webkit-box-orient: vertical;
-  `}
   line-height: 1.4;
 `;
 

@@ -1,0 +1,43 @@
+{
+  "include": [
+    "types",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "types": ["vite/client"],
+    "rootDirs": ["."],
+
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    "target": "ES2022",
+
+    "baseUrl": ".",
+    // "paths": {
+    //   "@pages/*": ["src/Pages/*"],
+    //   "@widgets/*": ["src/Widgets/*"],
+    //   "@features/*": ["src/Features/*"],
+    //   "@entities/*": ["src/Entities/*"],
+    //   "@shared/*": ["src/Shared/*"]
+    // },
+
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "strict": true,
+
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "allowUnusedLabels": true
+  }
+}

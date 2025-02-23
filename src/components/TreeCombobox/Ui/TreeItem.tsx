@@ -1,15 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import styled from 'styled-components';
 
-import { TreeItemProps } from './types';
+import { TreeNode, TreeItemProps } from '../Model/types';
 
-const ItemContainer = styled.div<{ level: number; isSelected: boolean; isFocused: boolean }>`
+const ItemContainer = styled.div<{ $level: number; $isFocused: boolean }>`
   padding: 6px 12px;
-  padding-left: ${props => props.level * 20 + 12}px;
+  padding-left: ${props => props.$level * 20 + 12}px;
   cursor: pointer;
   background-color: ${props => {
-    if (props.isSelected) return '#E6F7FF';
-    if (props.isFocused) return '#F0F7FF';
+    if (props.$isFocused) return '#F0F7FF';
     return 'transparent';
   }};
   display: flex;
@@ -21,15 +20,13 @@ const ItemContainer = styled.div<{ level: number; isSelected: boolean; isFocused
   min-height: 32px;
   border: 1px solid transparent;
   border-color: ${props => {
-    if (props.isSelected) return '#1890ff';
-    if (props.isFocused) return '#91d5ff';
+    if (props.$isFocused) return '#91d5ff';
     return 'transparent';
   }};
 
   &:hover {
     background-color: ${props => {
-    if (props.isSelected) return '#E6F7FF';
-    if (props.isFocused) return '#F0F7FF';
+    if (props.$isFocused) return '#F0F7FF';
     return '#F5F5F5';
   }};
     .actions {
@@ -38,22 +35,17 @@ const ItemContainer = styled.div<{ level: number; isSelected: boolean; isFocused
   }
 `;
 
-export const TreeItem: React.FC<TreeItemProps> = ({
+export const TreeItem = <T extends TreeNode>({
   node,
   searchTerm,
   level,
-  isSelected,
   isFocused,
   isExpanded,
   onSelect,
   onExpand,
   onCollapse,
-  onAdd,
-  onEdit,
-  onDelete,
-
   renderItem
-}) => {
+}: TreeItemProps<T>) => {
   const itemRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,40 +66,19 @@ export const TreeItem: React.FC<TreeItemProps> = ({
     }
   };
 
-  const handleAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onAdd?.(node);
-  };
-
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onEdit?.(node);
-  };
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete?.(node);
-  };
-
-
   const item = renderItem({
     node,
-    onAdd: handleAdd,
-    onEdit: handleEdit,
-    onDelete: handleDelete,
-    onExpand: handleExpandClick,
-
     isExpanded,
-    hasChildren
+    hasChildren,
+    onExpand: handleExpandClick,
   })
 
   return (
     <>
       <ItemContainer
         ref={itemRef}
-        level={level}
-        isSelected={isSelected}
-        isFocused={isFocused}
+        $level={level}
+        $isFocused={isFocused}
         onClick={() => onSelect(node)}
       >
         {item}

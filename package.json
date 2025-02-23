@@ -17,6 +17,7 @@
   "packageManager": "yarn@4.6.0",
   "dependencies": {
     "antd": "^5.24.1",
+    "classnames": "^2.5.1",
     "lucide-react": "^0.475.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -31,6 +32,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "sass-embedded": "^1.85.0",
     "typescript": "^5.2.2",
     "vite": "^5.1.0"
   }
