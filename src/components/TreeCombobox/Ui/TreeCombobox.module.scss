@@ -20,6 +20,12 @@
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 1000;
+    transition: opacity 0.15s ease;
+    max-height: 500px;
+
+    &:not(.controlled){
+        opacity: 0.7;
+    }
 
     &.hidden {
         display: none;
@@ -36,6 +42,7 @@
     max-height: 400px;
     overflow-y: auto;
     overflow-x: hidden;
+    transition: height 0.3s ease;
 
     /* Стилизация скроллбара */
     &::-webkit-scrollbar {

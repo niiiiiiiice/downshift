@@ -15,7 +15,7 @@ export const Demo = () => {
     const [data,] = useState(initialData);
     const [customStyleValue, setCustomStyleValue] = useState('');
 
-    const handleSelect = (node: TreeNode, parentPath: TreeNode[], key: 'Tab' | 'Enter') => {
+    const handleSelect = (node: TreeNode, parentPath: TreeNode[], key?: string) => {
         console.log('Selected:', node, 'parentPath:', parentPath, 'key', key);
     };
 

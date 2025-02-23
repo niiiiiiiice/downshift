@@ -226,7 +226,7 @@ export const TreeCombobox = <T extends TreeNode>({
     }
   };
 
-  const handleEnter = (visibleNodes: T[], key: 'Tab' | 'Enter') => {
+  const handleEnter = (visibleNodes: T[], key: string) => {
     if (!focusedNodeId) {
       return;
     }
@@ -263,9 +263,18 @@ export const TreeCombobox = <T extends TreeNode>({
     setIsDropdownControlled(true);
 
     const visibleNodes = getVisibleNodes(filteredNodes);
+    if (focusedNodeId && visibleNodes.some(node => node.id === focusedNodeId)) {
+      return;
+    }
+
     if (visibleNodes.length > 0) {
       setFocusedNodeId(visibleNodes[0].id);
     }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsDropdownControlled(false)
+    onChange(e.target.value)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -325,10 +334,10 @@ export const TreeCombobox = <T extends TreeNode>({
     }
   };
 
-  const handleNodeSelect = (node: T, key?: 'Tab' | 'Enter') => {
+  const handleNodeSelect = (node: T, key?: string) => {
     const breadcrumbs = buildNodePath(node.id, data);
 
-    onSelect(node, breadcrumbs.slice(0, -1), key ?? 'Enter');
+    onSelect(node, breadcrumbs.slice(0, -1), key);
     setIsDropdownVisible(false);
     setIsDropdownControlled(false);
   };
@@ -381,21 +390,33 @@ export const TreeCombobox = <T extends TreeNode>({
       setFilteredNodes(filtered);
       setIsDropdownVisible(filtered.length > 0);
 
-      // Выделяем первый элемент только если дропдаун контролируется
-      if (isDropdownControlled && filtered.length > 0) {
-        const visibleNodes = getVisibleNodes(filtered);
-        if (visibleNodes.length > 0) {
-          setFocusedNodeId(visibleNodes[0].id);
+      if (filtered.length > 0) {
+        const findFirstMatch = (nodes: T[]): string | null => {
+          for (const node of nodes) {
+            if (node.label.toLowerCase().includes(value.toLowerCase())) {
+              return node.id;
+            }
+            if (node.children?.length) {
+              const childMatch = findFirstMatch(node.children as T[]);
+              if (childMatch) return childMatch;
+            }
+          }
+          return null;
+        };
+
+        const firstMatchId = findFirstMatch(filtered);
+        if (firstMatchId) {
+          setFocusedNodeId(firstMatchId);
         }
       }
     } else {
       setFilteredNodes(data);
-      // Не показываем дропдаун если нет поискового запроса
+
       if (!isDropdownVisible) {
         setFocusedNodeId(null);
       }
     }
-  }, [value, data, isDropdownControlled]);
+  }, [value, data, isDropdownVisible]);
 
   return (
     <div ref={dropdownRef} className={s.container}>
@@ -404,14 +425,15 @@ export const TreeCombobox = <T extends TreeNode>({
           value,
           placeholder,
 
-          onChange: (e) => onChange(e.target.value),
+          onChange: handleChange,
           onKeyDown: handleKeyDown,
           onSelect: () => { }, //todo implement onSelect
         })}
       </div>
       <div
         className={cn(s.combobox, {
-          [s.hidden]: !isDropdownVisible
+          [s.hidden]: !isDropdownVisible,
+          [s.controlled]: isDropdownControlled
         })}
         style={{ width }}
       >

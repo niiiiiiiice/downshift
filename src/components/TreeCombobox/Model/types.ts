@@ -8,8 +8,11 @@ export interface TreeNode {
 
 export interface RenderItemProps<T extends TreeNode> {
   node: T;
+  onSelect: (node: T) => void;
   onExpand: (e: React.MouseEvent) => void;
+  onCollapse: (e: React.MouseEvent) => void;
   isExpanded: boolean;
+  isFocused: boolean;
   hasChildren: boolean;
 }
 
@@ -40,10 +43,12 @@ export interface TreeComboboxProps<T extends TreeNode> {
 
   width?: number | string;
 
+  selectKey?: Exclude<string, 'Escape' | 'Space' | 'ArrowDown' | 'ArrowUp' | 'ArrowRight' | 'ArrowLeft' | 'Enter' | 'Tab'>[];
+
   /**
    * функция для вызова при выборе элемента
    */
-  onSelect: (node: T, parentPath: T[], key: 'Tab' | 'Enter') => void;
+  onSelect: (node: T, parentPath: T[], key?: string) => void;
 
   /**
    * функция для вызова при раскрытии узла
