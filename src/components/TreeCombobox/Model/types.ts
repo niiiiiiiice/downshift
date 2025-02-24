@@ -1,10 +1,18 @@
-export interface TreeNode {
+export enum TreeNodeType {
+  NODE = 'node',
+  LEAF = 'leaf',
+}
+
+export type TreeNode = {
   id: string;
   label: string;
-  children?: TreeNode[];
-  isEditable?: boolean;
   description?: string;
-}
+} & ({
+  type: TreeNodeType.NODE;
+  children?: TreeNode[];
+} | {
+  type: TreeNodeType.LEAF;
+})
 
 export interface RenderItemProps<T extends TreeNode> {
   node: T;
@@ -13,7 +21,6 @@ export interface RenderItemProps<T extends TreeNode> {
   onCollapse: (e: React.MouseEvent) => void;
   isExpanded: boolean;
   isFocused: boolean;
-  hasChildren: boolean;
 }
 
 export interface RenderInputProps {
@@ -31,11 +38,12 @@ export interface TreeComboboxProps<T extends TreeNode> {
   /**
    * массив данных
    */
-  data: T[];
-  /**
-   * текст для placeholder
-   */
-  placeholder?: string;
+  tree: T[];
+
+  loading?: boolean
+
+  expandedNodes: Set<string>;
+
   /**
    * флаг для раскрытия всех узлов по умолчанию
    */
@@ -44,6 +52,14 @@ export interface TreeComboboxProps<T extends TreeNode> {
   width?: number | string;
 
   selectKey?: Exclude<string, 'Escape' | 'Space' | 'ArrowDown' | 'ArrowUp' | 'ArrowRight' | 'ArrowLeft' | 'Enter' | 'Tab'>[];
+  /**
+   * значение поля ввода
+   */
+  searchTerm: string;
+  /**
+   * функция для вызова при изменении значения поля ввода
+   */
+  onSearch: (value: string) => void;
 
   /**
    * функция для вызова при выборе элемента
@@ -53,7 +69,11 @@ export interface TreeComboboxProps<T extends TreeNode> {
   /**
    * функция для вызова при раскрытии узла
    */
-  onExpand?: (node: T) => void;
+
+  onExpand: (nodeId: string) => void;
+
+  onCollapse: (nodeId: string) => void;
+  onForceUpdate?: () => void;
   /**
    * функция для вызова при переносе управления обратно
    */
@@ -76,14 +96,6 @@ export interface TreeComboboxProps<T extends TreeNode> {
    */
   renderFooter?: () => React.ReactNode;
   /**
-   * значение поля ввода
-   */
-  value: string;
-  /**
-   * функция для вызова при изменении значения поля ввода
-   */
-  onChange: (value: string) => void;
-  /**
    * Функция рендеринга поля ввода
    */
   children: (props: RenderInputProps) => React.ReactNode;
@@ -95,7 +107,6 @@ export interface TreeItemProps<T extends TreeNode> {
   level: number;
   isFocused: boolean;
   isExpanded: boolean;
-  expandedNodes: Set<string>;
   onSelect: (node: T) => void;
   onExpand: (node: T) => void;
   onCollapse: (node: T) => void;

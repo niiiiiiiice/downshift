@@ -40,13 +40,10 @@ export const TreeItem = <T extends TreeNode>({
     }
   }, [isFocused]);
 
-  const hasChildren: boolean = Boolean(node.children && node.children.length > 0);
-
   const item = renderItem({
     node,
     isExpanded,
     isFocused,
-    hasChildren,
     onSelect,
     onExpand: () => onExpand(node),
     onCollapse: () => onCollapse(node)

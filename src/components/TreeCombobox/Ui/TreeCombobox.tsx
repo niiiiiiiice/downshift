@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import s from './TreeCombobox.module.scss';
-import { TreeNode, TreeComboboxProps } from '../Model';
+import { TreeNode, TreeComboboxProps, TreeNodeType } from '../Model';
 import { TreeItem } from './TreeItem';
 import cn from 'classnames';
 import { useOutsideClick } from '../Model/useOutsideClick';
@@ -12,39 +12,22 @@ import { useOutsideClick } from '../Model/useOutsideClick';
  * @template T - тип элементов дерева, должен расширять TreeNode
  */
 export const TreeCombobox = <T extends TreeNode>({
-  value,
-  data,
-  placeholder = '',
-  defaultExpanded = false,
-
+  searchTerm,
+  tree,
+  expandedNodes,
   width,
-
+  onSearch,
   onSelect,
   onExpand,
+  onCollapse,
   onTransferControlBack,
   onQuit,
+  onForceUpdate,
   renderItem,
   renderHeader,
   renderFooter,
-  onChange,
-  children,
+  children: renderInput,
 }: TreeComboboxProps<T>): React.ReactElement => {
-  const [filteredNodes, setFilteredNodes] = useState<T[]>(data);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
-    if (!defaultExpanded) return new Set();
-
-    const ids = new Set<string>();
-    const collectIds = (nodes: T[]) => {
-      nodes.forEach(node => {
-        if (node.children?.length) {
-          ids.add(node.id);
-          collectIds(node.children as T[]);
-        }
-      });
-    };
-    collectIds(data);
-    return ids;
-  });
 
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -63,80 +46,13 @@ export const TreeCombobox = <T extends TreeNode>({
 
     const traverse = (node: T) => {
       result.push(node);
-      if (node.children && (defaultExpanded || expandedNodes.has(node.id))) {
+      if (node.type === TreeNodeType.NODE && expandedNodes.has(node.id)) {
         (node.children as T[]).forEach(traverse);
       }
     };
 
     nodes.forEach(traverse);
     return result;
-  };
-
-  /**
-   * Функция для поиска родительского узла.
-   * @param nodeId - идентификатор узла, для которого нужно найти родителя.
-   * @param nodes - массив узлов дерева.
-   * @returns Родительский узел, если он найден, или null, если родитель не найден.
-   */
-  const findParentNode = (nodeId: string, nodes: T[]): T | null => {
-    for (const node of nodes) {
-      if (node.children?.some(child => child.id === nodeId)) {
-        return node;
-      }
-      if (node.children && (defaultExpanded || expandedNodes.has(node.id))) {
-        const parent = findParentNode(nodeId, node.children as T[]);
-        if (parent) return parent;
-      }
-    }
-    return null;
-  };
-
-  /**
-   * Функция для поиска узлов по заданному запросу.
-   * @param nodes - массив узлов дерева.
-   * @param term - запрос для поиска.
-   * @returns Массив найденных узлов.
-   */
-  const searchNodes = (nodes: T[], term: string): T[] => {
-    if (!term) return nodes;
-
-    const newExpandedIds = new Set<string>();
-    const termLower = term.toLowerCase();
-
-    const filterTree = (node: T, parents: T[] = []): T | null => {
-      const matchesSearch = node.label.toLowerCase().includes(termLower);
-
-      let filteredChildren: T[] = [];
-      if (node.children && node.children.length > 0) {
-        filteredChildren = (node.children as T[])
-          .map(child => filterTree(child, [...parents, node]))
-          .filter((child): child is T => child !== null);
-      }
-
-      if (matchesSearch || filteredChildren.length > 0) {
-        parents.forEach(parent => newExpandedIds.add(parent.id));
-        if (filteredChildren.length > 0) {
-          newExpandedIds.add(node.id);
-        }
-
-        return {
-          ...node,
-          children: filteredChildren.length > 0 ? filteredChildren : undefined
-        };
-      }
-
-      return null;
-    };
-
-    const filteredNodes = nodes
-      .map(node => filterTree(node, []))
-      .filter((node): node is T => node !== null);
-
-    if (!defaultExpanded) {
-      setExpandedNodes(newExpandedIds);
-    }
-
-    return filteredNodes;
   };
 
   /**
@@ -155,7 +71,7 @@ export const TreeCombobox = <T extends TreeNode>({
           return true;
         }
 
-        if (node.children) {
+        if (node.type === TreeNodeType.NODE) {
           if (traverse(node.children as T[], [...currentPath, node])) {
             return true;
           }
@@ -168,8 +84,66 @@ export const TreeCombobox = <T extends TreeNode>({
     return path;
   };
 
+
+  /**
+ * Функция для поиска родительского узла.
+ * @param nodeId - идентификатор узла, для которого нужно найти родителя.
+ * @param nodes - массив узлов дерева.
+ * @returns Родительский узел, если он найден, или null, если родитель не найден.
+ */
+  const findParentNode = (nodeId: string, nodes: T[]): T | null => {
+    for (const node of nodes) {
+      if (node.type === TreeNodeType.NODE && node.children?.some(child => child.id === nodeId)) {
+        return node;
+      }
+      if (node.type === TreeNodeType.NODE && expandedNodes.has(node.id)) {
+        const parent = findParentNode(nodeId, node.children as T[]);
+        if (parent) return parent;
+      }
+    }
+    return null;
+  };
+
+
+  const quit = () => {
+    if (isDropdownControlled) {
+      setIsDropdownControlled(false);
+      setFocusedNodeId(null);
+      onTransferControlBack?.();
+    } else {
+      setIsDropdownVisible(false);
+      onQuit?.();
+    }
+  };
+
+  const forceUpdate = (e: React.KeyboardEvent) => {
+    onForceUpdate?.();
+
+    setIsDropdownVisible(true);
+    transferControl(e);
+  }
+
+  const transferControl = (e: React.KeyboardEvent) => {
+    setIsDropdownControlled(true);
+
+    const visibleNodes = getVisibleNodes(tree);
+    if (focusedNodeId && visibleNodes.some(node => node.id === focusedNodeId)) {
+      return;
+    }
+
+    if (visibleNodes.length > 0) {
+      setFocusedNodeId(visibleNodes[0].id);
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsDropdownControlled(false)
+    onSearch(e.target.value)
+  }
+
+
   const goNext = () => {
-    const visibleNodes = getVisibleNodes(filteredNodes);
+    const visibleNodes = getVisibleNodes(tree);
     const currentIndex = visibleNodes.findIndex(node => node.id === focusedNodeId);
 
     if (currentIndex < visibleNodes.length - 1) {
@@ -182,7 +156,7 @@ export const TreeCombobox = <T extends TreeNode>({
   const goPrevious = () => {
     if (!isDropdownVisible) return;
 
-    const visibleNodes = getVisibleNodes(filteredNodes);
+    const visibleNodes = getVisibleNodes(tree);
     const currentIndex = visibleNodes.findIndex(node => node.id === focusedNodeId);
 
     if (currentIndex > 0) {
@@ -196,28 +170,25 @@ export const TreeCombobox = <T extends TreeNode>({
     if (!isDropdownVisible || !focusedNodeId) return;
 
     const focusedNode = visibleNodes.find(node => node.id === focusedNodeId);
-    if (!focusedNode?.children?.length || defaultExpanded) {
+    if (focusedNode?.type !== TreeNodeType.NODE || !focusedNode.children?.length) {
       return;
     }
 
-    setExpandedNodes(prev => new Set([...prev, focusedNodeId]));
+    onExpand(focusedNodeId)
     setFocusedNodeId((focusedNode.children as T[])[0].id);
   };
 
   const goUp = () => {
-    if (!focusedNodeId || defaultExpanded) {
+    if (!focusedNodeId) {
       return;
     }
 
-    const parentNode = findParentNode(focusedNodeId, filteredNodes);
-    const focusedNode = getVisibleNodes(filteredNodes).find(node => node.id === focusedNodeId);
+    const parentNode = findParentNode(focusedNodeId, tree);
+    const focusedNode = getVisibleNodes(tree).find(node => node.id === focusedNodeId);
 
-    if (focusedNode?.children && expandedNodes.has(focusedNode.id)) {
-      setExpandedNodes(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(focusedNode.id);
-        return newSet;
-      });
+    if (focusedNode?.type === TreeNodeType.NODE && expandedNodes.has(focusedNode.id)) {
+      onCollapse(focusedNode.id)
+
       return;
     }
 
@@ -227,9 +198,7 @@ export const TreeCombobox = <T extends TreeNode>({
   };
 
   const handleEnter = (visibleNodes: T[], key: string) => {
-    if (!focusedNodeId) {
-      return;
-    }
+    if (!focusedNodeId) return;
 
     const selectedNode = visibleNodes.find(node => node.id === focusedNodeId);
     if (selectedNode) {
@@ -238,49 +207,10 @@ export const TreeCombobox = <T extends TreeNode>({
     }
   };
 
-  const quit = () => {
-    if (isDropdownControlled) {
-      setIsDropdownControlled(false);
-      setFocusedNodeId(null);
-
-      onTransferControlBack?.();
-    } else {
-      setIsDropdownVisible(false);
-
-      onQuit?.();
-    }
-  };
-
-  const handleForceOpen = (e: React.KeyboardEvent) => {
-    const filtered = value ? searchNodes(data, value) : data;
-    setFilteredNodes(filtered);
-
-    setIsDropdownVisible(true);
-    transferControl(e);
-  }
-
-  const transferControl = (e: React.KeyboardEvent) => {
-    setIsDropdownControlled(true);
-
-    const visibleNodes = getVisibleNodes(filteredNodes);
-    if (focusedNodeId && visibleNodes.some(node => node.id === focusedNodeId)) {
-      return;
-    }
-
-    if (visibleNodes.length > 0) {
-      setFocusedNodeId(visibleNodes[0].id);
-    }
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsDropdownControlled(false)
-    onChange(e.target.value)
-  }
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.ctrlKey && e.code === 'Space') {
       e.preventDefault();
-      handleForceOpen(e)
+      forceUpdate(e)
     }
 
     if (!isDropdownVisible) {
@@ -316,7 +246,7 @@ export const TreeCombobox = <T extends TreeNode>({
 
       case 'ArrowRight':
         e.preventDefault();
-        goDeeper(getVisibleNodes(filteredNodes));
+        goDeeper(getVisibleNodes(tree));
         break;
 
       case 'ArrowLeft':
@@ -325,17 +255,17 @@ export const TreeCombobox = <T extends TreeNode>({
         break;
 
       case 'Enter':
-        handleEnter(getVisibleNodes(filteredNodes), 'Enter');
+        handleEnter(getVisibleNodes(tree), 'Enter');
         break;
 
       case 'Tab':
-        handleEnter(getVisibleNodes(filteredNodes), 'Tab');
+        handleEnter(getVisibleNodes(tree), 'Tab');
         break;
     }
   };
 
   const handleNodeSelect = (node: T, key?: string) => {
-    const breadcrumbs = buildNodePath(node.id, data);
+    const breadcrumbs = buildNodePath(node.id, tree);
 
     onSelect(node, breadcrumbs.slice(0, -1), key);
     setIsDropdownVisible(false);
@@ -343,91 +273,50 @@ export const TreeCombobox = <T extends TreeNode>({
   };
 
   const handleNodeExpand = (node: T) => {
-    if (!defaultExpanded) {
-      setExpandedNodes(prev => new Set([...prev, node.id]));
-      onExpand?.(node);
-    }
+    onExpand(node.id);
   };
 
   const handleNodeCollapse = (node: T) => {
-    if (!defaultExpanded) {
-      setExpandedNodes(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(node.id);
-        return newSet;
-      });
-    }
+    onCollapse(node.id);
   };
 
   const renderTreeItems = (nodes: T[], level: number = 0): React.ReactNode[] => {
-
     return nodes.map(node => (
       <React.Fragment key={node.id}>
         <TreeItem
           node={node}
-          searchTerm={value}
+          searchTerm={searchTerm}
           level={level}
           isFocused={node.id === focusedNodeId}
-          isExpanded={defaultExpanded || expandedNodes.has(node.id)}
-          expandedNodes={expandedNodes}
+          isExpanded={expandedNodes.has(node.id)}
           onSelect={handleNodeSelect}
           onExpand={handleNodeExpand}
           onCollapse={handleNodeCollapse}
           renderItem={renderItem}
         />
-        {node.children && (defaultExpanded || expandedNodes.has(node.id)) && (
+        {node.type === TreeNodeType.NODE && expandedNodes.has(node.id) && (
           renderTreeItems(node.children as T[], level + 1)
         )}
       </React.Fragment>
     ));
   };
 
-  useOutsideClick(dropdownRef, () => setIsDropdownVisible(false))
+  useOutsideClick(dropdownRef, () => setIsDropdownVisible(false));
 
   useEffect(() => {
-    if (value) {
-      const filtered = searchNodes(data, value);
-      setFilteredNodes(filtered);
-      setIsDropdownVisible(filtered.length > 0);
-
-      if (filtered.length > 0) {
-        const findFirstMatch = (nodes: T[]): string | null => {
-          for (const node of nodes) {
-            if (node.label.toLowerCase().includes(value.toLowerCase())) {
-              return node.id;
-            }
-            if (node.children?.length) {
-              const childMatch = findFirstMatch(node.children as T[]);
-              if (childMatch) return childMatch;
-            }
-          }
-          return null;
-        };
-
-        const firstMatchId = findFirstMatch(filtered);
-        if (firstMatchId) {
-          setFocusedNodeId(firstMatchId);
-        }
-      }
-    } else {
-      setFilteredNodes(data);
-
-      if (!isDropdownVisible) {
-        setFocusedNodeId(null);
-      }
+    if (searchTerm) {
+      setIsDropdownVisible(true);
     }
-  }, [value, data, isDropdownVisible]);
+  }, [searchTerm]);
 
   return (
     <div ref={dropdownRef} className={s.container}>
       <div className={s.inputContainer}>
-        {children({
-          value,
-          placeholder,
-
+        {renderInput({
+          value: searchTerm,
           onChange: handleChange,
           onKeyDown: handleKeyDown,
-          onSelect: () => { }, //todo implement onSelect
+          onSelect: () => { },
         })}
       </div>
       <div
@@ -443,9 +332,8 @@ export const TreeCombobox = <T extends TreeNode>({
           </div>
         )}
         <div className={s.itemsList}>
-          {renderTreeItems(filteredNodes)}
+          {renderTreeItems(tree)}
         </div>
-
         {renderFooter && (
           <div className={s.footer}>
             {renderFooter()}
@@ -454,4 +342,4 @@ export const TreeCombobox = <T extends TreeNode>({
       </div>
     </div>
   );
-};
+}

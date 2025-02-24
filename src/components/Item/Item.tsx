@@ -1,9 +1,9 @@
 import React from "react";
 import s from './Item.module.scss';
-import { EllipsisVertical, Folder, FolderOpen } from 'lucide-react';
-import { RenderItemProps, TreeNode } from '../TreeCombobox/Model/types';
-import { Label, ExpandIconWrapper } from './Item.styled';
-import { Button, Typography } from "antd";
+import { Folder, FolderOpen } from 'lucide-react';
+import { RenderItemProps, TreeNode, TreeNodeType } from '../TreeCombobox';
+import { ExpandIconWrapper } from './Item.styled';
+import { Typography } from "antd";
 import cn from "classnames";
 
 
@@ -12,7 +12,6 @@ export const Item: React.FC<RenderItemProps<TreeNode>> = (
     node,
     isExpanded,
     isFocused,
-    hasChildren,
     onSelect,
     onCollapse,
     onExpand,
@@ -33,9 +32,8 @@ export const Item: React.FC<RenderItemProps<TreeNode>> = (
       className={cn(s.container, {
         [s.focudes]: isFocused
       })}
-      onClick={() => { }}
     >
-      {hasChildren && (
+      {node.type === TreeNodeType.NODE && (
         <ExpandIconWrapper onClick={handleExpandClick}>
           {!isExpanded ? <Folder /> : <FolderOpen />}
         </ExpandIconWrapper>
@@ -43,9 +41,6 @@ export const Item: React.FC<RenderItemProps<TreeNode>> = (
       <Typography.Paragraph style={{ flex: 1, margin: 0 }} ellipsis={{ rows: 2, tooltip: true }}>
         {node.label}
       </Typography.Paragraph>
-      {node.isEditable && (
-        <Button type='text' icon={<EllipsisVertical color="#00000045"/>} />
-      )}
     </div>
   )
 }
